@@ -1,64 +1,74 @@
-# Harvest Guardian (Fabric 26.1)
+# Harvest Guardian 1.3.1 — Fabric 26.1
 
-Download the compiled mod: [harvest-guardian-1.1.0.jar](dist/harvest-guardian-1.1.0.jar). See installation instructions below; Fabric API and GeckoLib are also required.
+[Download the compiled mod](dist/harvest-guardian-1.3.1.jar).
 
-Starter Java mod project for the Harvest Guardian Blockbench model. It targets Minecraft 26.1, Fabric Loader 0.20.1, Fabric API 0.145.1+26.1, Java 25, and GeckoLib 5.5.
+A large village guardian with farming, food delivery, home patrols, timed slam attacks, sounds and drifting leaves. Requires Minecraft 26.1, Fabric Loader 0.20.1+, Fabric API 0.145.1+26.1, GeckoLib 5.5 for Fabric 26.1, and Java 25+.
 
-## Included
+## Install
 
-- Blockbench model and texture in GeckoLib's expected asset directories.
-- Six exported clips: idle, walk, planting seeds, giving bread, slam attack, and player agro.
-- A 0.6-block-wide, 1.35-block-tall collision box matched to the exported model (about 21 pixels tall), with a matching shadow.
-- Slower movement, a continuous walking loop with both arms, and walking-animation speed that follows movement speed.
-- Dedicated goals for approaching mature wheat within 8 blocks and hungry villagers within 12 blocks. Combat takes priority over these jobs; farming and gifting briefly stop walking.
-- A close-range slam attack with a small damage and knockback pulse against nearby monsters.
-- Periodic replanting of mature wheat on farmland.
-- A small saved bread supply; the guardian occasionally drops a loaf near a nearby villager for the villager to pick up.
-- `/summon harvestguardian:harvest_guardian` to spawn one in a test world.
-- Sounds for footsteps, leaf-rustling ambience, planting, bread, slam, aggro, hurt and death. These reuse Minecraft audio; no extra sound pack is needed.
+Close Minecraft and replace the old Harvest Guardian jar with `build/libs/harvest-guardian-1.3.1.jar`. Keep only one version of this mod in the mods folder. Do not install the `-sources.jar`.
 
-The current AI is a first pass. It does not yet implement the concept sheet's path repair, compost, irrigation, tree planting, lantern placement, or village-boundary patrol systems. Bread is a finite starting supply of eight loaves; crop yields are left as normal Minecraft drops.
+The model remains at 3.5x scale (about 4.6 blocks tall). Its collision box is 2.1 blocks wide and 4.725 blocks tall, so use open outdoor paths and fields.
 
-## Build
+## Simple controls — no new screen
 
-From this directory in PowerShell, run `.\gradlew.bat build`. The included wrapper downloads Gradle 9.8.2 automatically; no separate Gradle installation is required. Use a JDK 25 or newer supported by Gradle (this build used JDK 26). If Java is not found, set `JAVA_HOME` to your JDK installation directory before running the command. Internet access is needed on the first build.
+Use `/hg follow`, `/hg stay`, `/hg patrol`, or `/hg farm`. Use `/hg home`, `/hg bell`, and `/hg radius 32` to assign its area. `/hg controls` prints optional chat shortcuts. Clicking the mob no longer opens controls, adds supplies or heals it. Normal left-click attacks still behave normally.
 
-Compilation and packaging passed on 2026-11-18 with Gradle 9.8.2 and Java 26.0.2.1, targeting Java 25 bytecode. Version 1.0.0 was confirmed working in-game by the user. This update's commands, navigation and sounds still need an in-game check. There is no automated gameplay test suite.
+- **Follow:** follows the player who selected it. Waits if that player is unavailable or in another dimension.
+- **Stay:** stays where it is, defending itself against threats already within slam range.
+- **Patrol:** wanders inside the home area, protects it, collects supplies and shares bread.
+- **Farm:** approaches nearby farmland, plants, harvests/replants wheat, collects supplies, bakes bread and feeds hungry villagers. Combat takes priority.
+- **Set here:** makes your current position the home center.
+- **Bind bell:** makes the nearest bell within 16 blocks the home center.
+- **Radius - / +:** adjusts the home radius by 8 blocks, from 8 to 64. Default: 24.
 
-## Install the compiled mod
+Home, mode, keeper and supplies survive world reloads. A new Guardian uses its initial position as home. Patrol and farm work stay inside the home area; Follow can leave it. If it changes dimensions, reassign home before using Patrol/Farm there.
 
-Close Minecraft and replace the old Harvest Guardian jar with `build/libs/harvest-guardian-1.1.0.jar` (the file without `-sources`). Keep only one Harvest Guardian version in the mods folder. Keep Fabric API 0.145.1+26.1 and GeckoLib 5.5 for Fabric 26.1 installed. Use Fabric Loader 0.20.1 or newer compatible with Minecraft 26.1.
+## Feeding, supplies and farming
 
-Existing guardians receive the corrected collision box when the world loads. Their old saved movement speed is migrated once to the new default. The exported model's visual size is preserved; the oversized invisible hitbox was the mismatch.
+There is no backpack screen. Supplies are stored internally and shown in the chat status.
 
-## Demonstration commands
+- Hold wheat seeds and run `/hg feed` to add one seed. Sneak while running it to add the held stack.
+- Bone meal heals 10 health; bread heals 6; wheat, carrots, potatoes or beetroot heal 3. One item is consumed in survival.
+- Hold crops or food and run `/hg feed` to heal. Sneak while running it to store the held stack instead. If already fully healed, it stores one item.
+- New Guardians start with eight loaves. Existing saved bread is migrated into real item stacks.
+- Farm mode consumes one seed per planting/replanting. It uses vanilla wheat drops, collects them, and can reserve a harvested seed for replanting.
+- Three stored wheat become one bread. Crafting stops if the result will not fit. Overflow harvest drops remain in the world. Stored supplies normally drop when the Guardian dies.
+- Farming requires the mob-griefing game rule to be enabled. Prepare reachable farmland inside the home radius and feed some seeds before selecting Farm.
+- Supported stored supplies include seeds, wheat, bread, carrots, potatoes, beetroot, bone meal, pumpkins and melon slices. Automatic planting and harvesting currently handle wheat.
 
-Enable cheats or use operator permission. Commands target the nearest living Guardian within 32 blocks in the same dimension. `/harvestguardian` is the full form of `/hg`. Tab completion lists the available commands and animations.
+## Combat
 
-| Command | Result |
+The slam raises both arms, holds a visible wind-up, then deals damage at impact (about 0.65 seconds). The impact creates ground debris and a dust ring, deals 15 damage, and knocks nearby threats back. It has a roughly three-second cooldown after impact. The Guardian scans once per second for visible hostile mobs inside its protection area and follows them in Patrol/Farm mode. Impact targets must be within 3.2 blocks, visible, and inside the allowed protection area. Villagers, the keeper and allied entities are excluded. Survival players who attack an unowned/other player's Guardian can provoke retaliation.
+
+## Commands
+
+The `/hg` demonstration commands require cheats/operator permission and select the nearest Guardian within 32 blocks. The `/hg` controls require cheats/operator permission.
+
+| Command | Action |
 | --- | --- |
-| `/hg help` | Show command help. |
-| `/hg summon` | Spawn one 3 blocks east of you if there is enough space. |
-| `/hg status` | Show the selected guardian's health and bread supply. |
-| `/hg showcase` | Preview all six animations and their sounds over 15 seconds. AI pauses, then resumes. No items, crops or combat damage are produced. |
-| `/hg stop` | Stop the preview and resume normal AI. |
-| `/hg animation walk` | Preview one animation in place for 2 seconds. Options: `idle`, `walk`, `plant_seed`, `give_bread`, `attack_slam`, `player_agro`. |
-| `/hg plant` | Harvest/replant mature wheat within 3 blocks, or supply a seed to empty farmland. Reports missing farmland if there is nowhere to plant. |
-| `/hg bread` | Consume one stored loaf and drop it beside a villager within 5 blocks of the Guardian. Normal villager pickup rules apply. |
-| `/hg refill` | Set its bread supply to 64 so you can repeat the demonstration. |
-| `/hg slam` | Play the slam and damage/knock back monsters in the area around its feet (about 2.5 blocks). Players and villagers are excluded. |
-| `/hg aggro` | Preview the aggro animation and sound without making the Guardian attack you. |
+| `/hg summon` | Spawn in open space three blocks east of you. |
+| `/hg controls` | Show the simple chat controls. |
+| `/hg feed` | Heal or supply the Guardian using the item in your main hand. |
+| `/hg status` | Show health, bread, mode, radius and home. |
+| `/hg follow`, `/hg stay`, `/hg patrol`, `/hg farm` | Select behavior. |
+| `/hg home`, `/hg bell`, `/hg radius 32` | Assign home/bell/radius. |
+| `/hg showcase`, `/hg stop` | Preview six animations, or end the preview. |
+| `/hg animation walk` | Preview a clip: idle, walk, plant_seed, give_bread, attack_slam, player_agro. |
+| `/hg plant` | Work on nearby farmland using real seeds/harvest drops inside the home area. |
+| `/hg bread` | Deliver one stored loaf to a nearby villager. |
+| `/hg refill` | Operator-only demonstration refill, up to 64 bread if space allows. |
+| `/hg slam` | Queue the timed slam against nearby monsters; respects cooldown. |
+| `/hg aggro` | Harmless aggro animation preview. |
 
-For a quick presentation, stand near the Guardian and run `/hg showcase`. For real farming, prepare empty farmland or mature wheat beside it and run `/hg plant`. For bread, place a villager nearby, run `/hg refill`, then `/hg bread`. `/hg animation ...` works without those surroundings. The walk preview stays in place; normal AI handles actual navigation.
+## Build and verification
 
-## Replace the Blockbench exports
+Run `.\gradlew.bat build` in PowerShell with Java 25+ available. The wrapper downloads Gradle 9.8.2. Build output is in `build/libs/`.
 
-The root `.bbmodel` and JSON files preserve the original Blockbench exports. The files in `src/main/resources` are the current game assets, including the improved walking animation in version 1.1.0.
+The build runs 21 checks against Minecraft's real item/container classes: recipe conservation, failed-consumption rollback, full storage, seed reservation, overflow, and slot-preserving save/load. Run them separately with `.\gradlew.bat verifyBackpack`.
 
-Use these resource paths when replacing or re-exporting assets:
+Version 1.3.1 compiled and passed those checks. The new chat controls, navigation and timed combat still need in-game testing.
 
-- `src/main/resources/assets/harvestguardian/geckolib/models/entity/harvest_guardian.geo.json`
-- `src/main/resources/assets/harvestguardian/geckolib/animations/entity/harvest_guardian.animation.json`
-- `src/main/resources/assets/harvestguardian/textures/entity/harvest_guardian.png`
+## Model assets
 
-The animation controller looks for the names `animation.idle`, `animation.walk`, `animation.plant_seed`, `animation.give_bread`, `animation.attack_slam`, and `animation.player_agro`.
+Current game assets are under `src/main/resources/assets/harvestguardian/`: `geckolib/models/entity/harvest_guardian.geo.json`, `geckolib/animations/entity/harvest_guardian.animation.json`, and `textures/entity/harvest_guardian.png`. Root Blockbench files preserve the original export; the packaged animation file includes later improvements.
