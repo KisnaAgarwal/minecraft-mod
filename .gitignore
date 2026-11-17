@@ -1,0 +1,11 @@
+.gradle/
+.gradle-home/
+.build-tools/
+build/
+run/
+.idea/
+*.iml
+*.log
+*.hprof
+.env
+.env.*

@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "harvestguardian",
+  "version": "${version}",
+  "name": "Harvest Guardian",
+  "description": "A village-protecting, crop-tending golem inspired by the Harvest Guardian concept.",
+  "authors": ["Kisna"],
+  "license": "All-Rights-Reserved",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["com.kisna.harvestguardian.HarvestGuardianMod"],
+    "client": ["com.kisna.harvestguardian.client.HarvestGuardianClient"]
+  },
+  "depends": {
+    "fabricloader": ">=0.20.1",
+    "minecraft": "26.1.x",
+    "java": ">=25",
+    "fabric-api": "*",
+    "geckolib": ">=5.5"
+  }
+}
