@@ -17,7 +17,8 @@ public final class GuardianBackpack extends SimpleContainer {
     public static final int SIZE = 27;
     private static final Set<Item> SUPPLIES = Set.of(Items.WHEAT_SEEDS, Items.WHEAT, Items.BREAD,
             Items.CARROT, Items.POTATO, Items.BEETROOT, Items.BEETROOT_SEEDS, Items.BONE_MEAL,
-            Items.PUMPKIN_SEEDS, Items.MELON_SEEDS, Items.PUMPKIN, Items.MELON_SLICE);
+            Items.PUMPKIN_SEEDS, Items.MELON_SEEDS, Items.PUMPKIN, Items.MELON_SLICE,
+            Items.OAK_SAPLING);
 
     public GuardianBackpack() { super(SIZE); }
     public static boolean isSupply(ItemStack stack) { return SUPPLIES.contains(stack.getItem()); }

@@ -71,6 +71,7 @@ public final class HarvestGuardianEntity extends PathfinderMob implements GeoEnt
     private UUID followPlayer;
     private int patrolRadius = 24;
     private int giftTimer = 200;
+    private int treePlantTimer = 2400;
     private int poseTicks;
     private int previewTicks;
     private boolean showcasing;
@@ -84,6 +85,7 @@ public final class HarvestGuardianEntity extends PathfinderMob implements GeoEnt
         getNavigation().setCanFloat(true);
         setPersistenceRequired();
         backpack.addItem(new ItemStack(Items.BREAD, 8));
+        backpack.addItem(new ItemStack(Items.OAK_SAPLING, 8));
     }
 
     public static AttributeSupplier.Builder createAttributes() {
@@ -152,9 +154,14 @@ public final class HarvestGuardianEntity extends PathfinderMob implements GeoEnt
         }
         if (poseTicks > 0) { poseTicks--; getNavigation().stop(); }
         if (giftTimer > 0) giftTimer--;
+        if (treePlantTimer > 0) treePlantTimer--;
         if (canWork() && (mode == GuardianMode.FARM || mode == GuardianMode.PATROL)) {
             if (tickCount % 10 == 0) collectNearbySupplies();
             if (tickCount % 100 == 0) backpack.bakeBread();
+            if (treePlantTimer == 0 && tickCount % 20 == 0) {
+                plantNearbySapling((ServerLevel) level());
+                treePlantTimer = 2400 + random.nextInt(1201);
+            }
         }
     }
 
@@ -204,11 +211,11 @@ public final class HarvestGuardianEntity extends PathfinderMob implements GeoEnt
     }
     public void showControls(Player player) {
         if (!canManage(player)) {
-            player.sendSystemMessage(Component.literal("This Guardian belongs to another player."));
+            player.sendSystemMessage(Component.literal("This Groot belongs to another player."));
             return;
         }
         if (owner == null) owner = player.getUUID();
-        player.sendSystemMessage(Component.literal("Harvest Guardian: " + mode.label + " | Home radius: " + patrolRadius
+        player.sendSystemMessage(Component.literal("Groot: " + mode.label + " | Home radius: " + patrolRadius
                 + " | Seeds: " + backpack.countItem(Items.WHEAT_SEEDS) + " | Wheat: " + backpack.countItem(Items.WHEAT)
                 + " | Bread: " + getBreadSupply()));
         var controls = Component.literal("Choose: ");
@@ -220,7 +227,7 @@ public final class HarvestGuardianEntity extends PathfinderMob implements GeoEnt
                 .append(controlButton("Bind bell", "bell")).append(" ")
                 .append(controlButton("Radius -", "radius " + Math.max(8, patrolRadius - 8))).append(" ")
                 .append(controlButton("Radius +", "radius " + Math.min(64, patrolRadius + 8))));
-        player.sendSystemMessage(Component.literal("Use /hg feed with seeds to stock farming; sneak while running it to store crops instead of healing."));
+        player.sendSystemMessage(Component.literal("Use /groot feed with seeds to stock farming; sneak while running it to store crops instead of healing."));
     }
     private Component controlButton(String label, String action) {
         return Component.literal("[" + label + "]").withStyle(style -> style.withColor(ChatFormatting.GREEN)
@@ -244,7 +251,7 @@ public final class HarvestGuardianEntity extends PathfinderMob implements GeoEnt
             if (!player.getAbilities().instabuild) held.shrink(accepted);
             player.sendSystemMessage(Component.literal(accepted > 0 ? "Stored " + accepted + " supplies for farming and food delivery." : "Supplies are full."));
             if (accepted > 0) playSound(SoundEvents.ITEM_PICKUP, .6f, .8f);
-        } else player.sendSystemMessage(Component.literal("Hold seeds, crops, bread or bone meal, then run /hg feed. Sneak to store the held stack instead of healing."));
+        } else player.sendSystemMessage(Component.literal("Hold oak saplings, seeds, crops, bread or bone meal, then run /groot feed. Sneak to store the held stack instead of healing."));
     }
 
     private boolean canWork() {
@@ -258,6 +265,22 @@ public final class HarvestGuardianEntity extends PathfinderMob implements GeoEnt
     private boolean farmingAllowed(ServerLevel level, BlockPos pos) {
         return withinHome(pos) && level.getGameRules().get(GameRules.MOB_GRIEFING)
                 && level.getBlockState(pos.below()).is(Blocks.FARMLAND);
+    }
+    private void plantNearbySapling(ServerLevel level) {
+        if (!level.getGameRules().get(GameRules.MOB_GRIEFING)
+                || backpack.countItem(Items.OAK_SAPLING) == 0) return;
+        BlockState sapling = Blocks.OAK_SAPLING.defaultBlockState();
+        for (BlockPos pos : BlockPos.betweenClosed(blockPosition().offset(-3, -1, -3), blockPosition().offset(3, 1, 3))) {
+            if (!level.hasChunkAt(pos) || !withinHome(pos) || !level.getBlockState(pos).isAir()
+                    || getBoundingBox().intersects(new AABB(pos)) || !level.canSeeSky(pos)) continue;
+            if (!sapling.canSurvive(level, pos) || !level.getBlockState(pos.above()).isAir()) continue;
+            if (level.setBlock(pos, sapling, 3)) {
+                backpack.consume(Items.OAK_SAPLING, 1);
+                getLookControl().setLookAt(pos.getX() + .5, pos.getY(), pos.getZ() + .5);
+                playAction("plant_seed");
+                return;
+            }
+        }
     }
     private boolean workCrop(ServerLevel level, BlockPos pos) {
         if (!farmingAllowed(level, pos)) return false;
@@ -539,6 +562,7 @@ public final class HarvestGuardianEntity extends PathfinderMob implements GeoEnt
         output.storeNullable("GuardianOwner", UUIDUtil.CODEC, owner);
         output.storeNullable("GuardianFollowPlayer", UUIDUtil.CODEC, followPlayer);
         output.putInt("GuardianGiftTimer", giftTimer);
+        output.putInt("GrootTreeTimer", treePlantTimer);
         output.putInt("GuardianMovementRevision", 1);
     }
     @Override protected void readAdditionalSaveData(ValueInput input) {
@@ -555,6 +579,7 @@ public final class HarvestGuardianEntity extends PathfinderMob implements GeoEnt
         owner = input.read("GuardianOwner", UUIDUtil.CODEC).orElse(null);
         followPlayer = input.read("GuardianFollowPlayer", UUIDUtil.CODEC).orElse(null);
         giftTimer = Mth.clamp(input.getIntOr("GuardianGiftTimer", 200), 0, 1200);
+        treePlantTimer = Mth.clamp(input.getIntOr("GrootTreeTimer", 2400), 0, 3600);
         if (input.getIntOr("GuardianMovementRevision", 0) < 1) getAttribute(Attributes.MOVEMENT_SPEED).setBaseValue(.18);
     }
     @Override public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {

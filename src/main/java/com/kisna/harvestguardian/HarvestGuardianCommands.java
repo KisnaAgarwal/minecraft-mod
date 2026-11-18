@@ -20,7 +20,7 @@ public final class HarvestGuardianCommands {
 
     public static void register() {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
-            var root = Commands.literal("harvestguardian")
+            var root = Commands.literal("groot")
                     .requires(HarvestGuardianCommands::canDemonstrate)
                     .executes(ctx -> help(ctx.getSource()))
                     .then(Commands.literal("help").executes(ctx -> help(ctx.getSource())))
@@ -28,13 +28,13 @@ public final class HarvestGuardianCommands {
                     .then(Commands.literal("status").executes(ctx -> {
                         var guardian = nearest(ctx.getSource());
                         return success(ctx.getSource(), String.format(Locale.ROOT,
-                                "Guardian #%d: %.0f/%.0f health, %d bread, %s mode, radius %d. Home: %s",
+                                "Groot #%d: %.0f/%.0f health, %d bread, %s mode, radius %d. Home: %s",
                                 guardian.getId(), guardian.getHealth(), guardian.getMaxHealth(), guardian.getBreadSupply(),
                                 guardian.getMode().label, guardian.getPatrolRadius(), guardian.homeDescription()));
                     }))
                     .then(Commands.literal("showcase").executes(ctx -> {
                         nearest(ctx.getSource()).startShowcase();
-                        return success(ctx.getSource(), "15-second preview: idle, walk, planting, bread, slam, aggro. No crops, items or damage are produced. /hg stop ends it.");
+                        return success(ctx.getSource(), "15-second preview: idle, walk, planting, bread, slam, aggro. No crops, items or damage are produced. /groot stop ends it.");
                     }))
                     .then(Commands.literal("stop").executes(ctx -> {
                         nearest(ctx.getSource()).stopPreview();
@@ -47,14 +47,14 @@ public final class HarvestGuardianCommands {
                     .then(Commands.literal("plant").executes(ctx -> {
                         var guardian = nearest(ctx.getSource());
                         guardian.stopPreview();
-                        if (!guardian.demonstratePlanting()) throw failure("Need nearby farmland inside the home area and real seeds in the backpack (or in harvest drops). Mob griefing must be enabled. /hg animation plant_seed previews without supplies.");
-                        return success(ctx.getSource(), "Guardian planted wheat (or harvested and replanted a mature wheat crop).");
+                        if (!guardian.demonstratePlanting()) throw failure("Need nearby farmland inside the home area and real seeds in the backpack (or in harvest drops). Mob griefing must be enabled. /groot animation plant_seed previews without supplies.");
+                        return success(ctx.getSource(), "Groot planted wheat (or harvested and replanted a mature wheat crop).");
                     }))
                     .then(Commands.literal("bread").executes(ctx -> {
                         var guardian = nearest(ctx.getSource());
-                        if (guardian.getBreadSupply() == 0) throw failure("No bread left. Run /hg refill first.");
+                        if (guardian.getBreadSupply() == 0) throw failure("No bread left. Run /groot refill first.");
                         guardian.stopPreview();
-                        if (!guardian.giveBread()) throw failure("No living villager within 5 blocks of the guardian. Bring one closer, or use /hg animation give_bread for a preview.");
+                        if (!guardian.giveBread()) throw failure("No living villager within 5 blocks of the guardian. Bring one closer, or use /groot animation give_bread for a preview.");
                         return success(ctx.getSource(), "Dropped one loaf beside the nearest villager. Supply remaining: " + guardian.getBreadSupply() + ". Villager pickup follows Minecraft's normal rules.");
                     }))
                     .then(Commands.literal("slam").executes(ctx -> {
@@ -105,6 +105,8 @@ public final class HarvestGuardianCommands {
                 return success(ctx.getSource(), "Home radius set to " + radius + " blocks.");
             })));
             var node = dispatcher.register(root);
+            dispatcher.register(Commands.literal("harvestguardian").requires(HarvestGuardianCommands::canDemonstrate)
+                    .executes(ctx -> help(ctx.getSource())).redirect(node));
             dispatcher.register(Commands.literal("hg").requires(HarvestGuardianCommands::canDemonstrate)
                     .executes(ctx -> help(ctx.getSource())).redirect(node));
 
@@ -114,7 +116,7 @@ public final class HarvestGuardianCommands {
                 controlled.then(Commands.literal(mode.name().toLowerCase(Locale.ROOT)).executes(ctx -> {
                     var guardian = managed(ctx);
                     guardian.setMode(mode, ctx.getSource().getPlayerOrException());
-                    return success(ctx.getSource(), "Guardian mode: " + mode.label);
+                    return success(ctx.getSource(), "Groot mode: " + mode.label);
                 }));
             }
             controlled.then(Commands.literal("home").executes(ctx -> {
@@ -140,7 +142,7 @@ public final class HarvestGuardianCommands {
         var entity = ctx.getSource().getLevel().getEntity(UuidArgument.getUuid(ctx, "id"));
         if (!(entity instanceof HarvestGuardianEntity guardian) || !guardian.isAlive()
                 || guardian.distanceToSqr(player) > 100 || !guardian.canManage(player))
-            throw failure("You must be within 10 blocks of your Guardian to use these controls.");
+            throw failure("You must be within 10 blocks of your Groot to use these controls.");
         return guardian;
     }
 
@@ -155,7 +157,7 @@ public final class HarvestGuardianCommands {
                                 position.x + 32, position.y + 32, position.z + 32),
                         entity -> entity.isAlive() && entity.distanceToSqr(position) <= 32 * 32)
                 .stream().min(Comparator.comparingDouble(entity -> entity.distanceToSqr(position)))
-                .orElseThrow(() -> failure("No Harvest Guardian within 32 blocks in this dimension. Run /hg summon or move closer."));
+                .orElseThrow(() -> failure("No Groot within 32 blocks in this dimension. Run /groot summon or move closer."));
     }
 
     private static int summon(CommandSourceStack source) throws CommandSyntaxException {
@@ -164,20 +166,20 @@ public final class HarvestGuardianCommands {
         guardian.setPersistenceRequired();
         if (!source.getLevel().noCollision(guardian)) throw failure("Not enough space 3 blocks east of you. Move to an open area (guardian needs about 2.1 blocks of width and 4.73 blocks of height).");
         if (!source.getLevel().addFreshEntity(guardian)) throw failure("Could not spawn the guardian.");
-        return success(source, "Summoned a Harvest Guardian 3 blocks east of you. Try /hg showcase.");
+        return success(source, "Summoned a Groot 3 blocks east of you. Try /groot showcase.");
     }
 
     private static int help(CommandSourceStack source) {
-        return success(source, "Harvest Guardian commands (nearest within 32 blocks):\n"
-                + "/hg summon | status | refill\n"
-                + "/hg feed | controls | follow | stay | patrol | farm\n"
-                + "/hg home | bell | radius <8-64>\n"
-                + "/hg showcase | stop — preview all six animations\n"
-                + "/hg animation <idle|walk|plant_seed|give_bread|attack_slam|player_agro>\n"
-                + "/hg plant — work on nearby farmland/wheat\n"
-                + "/hg bread — deliver bread to a villager within 5 blocks\n"
-                + "/hg slam — damage nearby monsters\n"
-                + "/hg aggro — preview aggro without targeting players\n"
+        return success(source, "Groot commands (nearest within 32 blocks):\n"
+                + "/groot summon | status | refill\n"
+                + "/groot feed | controls | follow | stay | patrol | farm\n"
+                + "/groot home | bell | radius <8-64>\n"
+                + "/groot showcase | stop — preview all six animations\n"
+                + "/groot animation <idle|walk|plant_seed|give_bread|attack_slam|player_agro>\n"
+                + "/groot plant — work on nearby farmland/wheat\n"
+                + "/groot bread — deliver bread to a villager within 5 blocks\n"
+                + "/groot slam — damage nearby monsters\n"
+                + "/groot aggro — preview aggro without targeting players\n"
                 + "Requires cheats or operator permission. /harvestguardian also works.");
     }
 
